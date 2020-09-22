@@ -1,11 +1,12 @@
 const canvas = document.getElementById('canvas1')
 const ctx = canvas.getContext('2d')
+var container = document.getElementById('chart-area');
 
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
-const numberOfPreys = 100;
-const numberOfPredators = 20;
+const numberOfPreys = 1000;
+const numberOfPredators = 50;
 
 const prey_begin_speed = [1,30];
 const prey_begin_size = [1,100];
@@ -15,13 +16,13 @@ const predator_begin_speed = [4,20];
 const predator_begin_size = [40,40];
 const predator_turn_period = [50,100];
 
-const mutation_value = 0.01;
-const alive_value = 0.1;
+const mutation_value = 0.5;
+const alive_value = 0.3;
 const crossover_value = 0.7;
 
 const cutting_value = 3;
 
-let generation = 1;
+let generation = 0;
 
 let preysArray = [];
 let next_preysArray = [];
@@ -29,6 +30,54 @@ let predatorsArray = [];
 let next_predatorsArray = [];
 let update_count = 0;
 let eaten_preys = [];
+
+const data_limit = 20;
+
+var legends = ['SiteA', 'SiteB'];
+var seriesData = [
+    {
+        name: 'Prey_speed',
+        data: [0,0,0,0,0,0,0,0,0,0]
+    },
+    {
+        name: 'Prey_size',
+        data: [0,0,0,0,0,0,0,0,0,0]
+    }
+];
+console.log(seriesData);
+var baseNow = new Date();
+var startSecond = baseNow.getSeconds() - seriesData[0].data.length - 1;
+var categories = [0,0,0,0,0,0,0,0,0,0];
+var container = document.getElementById('chart-area');
+var data = {
+    categories: categories,
+    series: seriesData
+};
+var options = {
+    chart: {
+        width: 500,
+        height: 250,
+        title: 'History'
+    },
+    xAxis: {
+        title: 'value',
+        labelInterval: 2,
+        tickInterval: 1
+    },
+    yAxis: {
+        title: 'users',
+        min: 0
+    },
+    series: {
+        spline: true,
+        showDot: true,
+        shifting: true
+    },
+    tooltip: {
+        grouped: true
+    }
+};
+var chart = tui.chart.lineChart(container, data, options);
 
 class Prey {
     constructor(size, speed){
@@ -138,8 +187,9 @@ function crossover_mutation_with_alive(){
         M_idx = Math.round(Math.random() * (preysArray.length - 1));
         F_idx = Math.round(Math.random() * (preysArray.length - 1));
         do {
-            result_size = (preysArray[M_idx].get_size() + preysArray[F_idx].get_size())/2 + (Math.random() * 10 -5);
-            result_speed = (preysArray[M_idx].get_speed() + preysArray[F_idx].get_speed())/2 + (Math.random() * 10 -5);
+            result_size = (preysArray[M_idx].get_size() + preysArray[F_idx].get_size()) * 3 / 8 + (Math.random() - 0.5) * (preysArray[M_idx].get_size() + preysArray[F_idx].get_size())/8;
+            result_speed = (preysArray[M_idx].get_speed() + preysArray[F_idx].get_speed()) * 3 / 8 + (Math.random() - 0.5) * (preysArray[M_idx].get_speed() + preysArray[F_idx].get_speed())/8;
+            if (preysArray[M_idx].get_size() < 1 & preysArray[F_idx].get_size() < 1) result_size = 1.01;
         } while (result_size <= 0 || result_speed <= 0)
         if (Math.random() <= mutation_value) {
             result_size *= Math.random() * 3
@@ -156,8 +206,9 @@ function crossover_mutation_without_alive(){
         M_idx = Math.round(Math.random() * (preysArray.length - 1));
         F_idx = Math.round(Math.random() * (preysArray.length - 1));
         do {
-            result_size = (preysArray[M_idx].get_size() + preysArray[F_idx].get_size())/2 + (Math.random() * 10 - 5);
-            result_speed = (preysArray[M_idx].get_speed() + preysArray[F_idx].get_speed())/2 + (Math.random() * 10 -5);
+            result_size = (preysArray[M_idx].get_size() + preysArray[F_idx].get_size()) * 3 / 8 + (Math.random() - 0.5) * (preysArray[M_idx].get_size() + preysArray[F_idx].get_size())/8;
+            result_speed = (preysArray[M_idx].get_speed() + preysArray[F_idx].get_speed()) * 3 / 8 + (Math.random() - 0.5) * (preysArray[M_idx].get_speed() + preysArray[F_idx].get_speed())/8;
+            if (preysArray[M_idx].get_size() < 1 & preysArray[F_idx].get_size() < 1) result_size = 1.01;
         } while (result_size <= 0 || result_speed <= 0)
         if (Math.random() <= mutation_value) {
             result_size *= Math.random() * 3
@@ -185,9 +236,7 @@ function animate(test_count){
         preysArray[i].draw();
         for (let j = 0; j < predatorsArray.length; j++){
             if (distances(preysArray[i].get_x(), preysArray[i].get_y(), predatorsArray[j].get_x(), predatorsArray[j].get_y()) <= preysArray[i].get_size() + predatorsArray[j].get_size()) {
-                if (predatorsArray[j].get_size() + 1 > preysArray[i].get_size() & preysArray[i].get_size() > predatorsArray[j].get_size() - 1) {
-                    continue;
-                }
+                //if (predatorsArray[j].get_size() + 1 > preysArray[i].get_size() & preysArray[i].get_size() > predatorsArray[j].get_size() - 1) continue;
                 preysArray.splice(i,1);
                 break;
             }
@@ -200,7 +249,7 @@ function animate(test_count){
 
     document.getElementById("preys_num_info").innerHTML = "Preys: " + preysArray.length;
     document.getElementById("predators_num_info").innerHTML = "Predators: " + predatorsArray.length;
-    document.getElementById("progress_bar").value = (100 - preysArray.length) * 100 / (100 - alive_value * numberOfPreys);
+    document.getElementById("progress_bar").value = (numberOfPreys - preysArray.length) * 100 / ((1 - alive_value) * numberOfPreys);
     document.getElementById("remain_info").innerHTML= "Remains: " + (preysArray.length - alive_value * numberOfPreys);
     if (preysArray.length <= alive_value * numberOfPreys) {
         let prey_size_temp = prey_speed_temp = predator_size_temp = predator_speed_temp = 0;
@@ -218,10 +267,17 @@ function animate(test_count){
         document.getElementById("prey_speed_info").innerHTML = "Preys avg_speed: " + cutting(prey_speed_temp/preysArray.length);
         document.getElementById("predator_speed_info").innerHTML = "Predators avg_speed: " + cutting(predator_speed_temp/predatorsArray.length);
 
-        console.log('generating...')
+        var index = categories.length;
+        var now = new Date();
+        var category = [generation];
+        var values = [cutting(prey_speed_temp/predatorsArray.length), cutting(prey_size_temp/preysArray.length)];
+        chart.addData(category, values);
+        index += 1;
+
         crossover_mutation_without_alive();
         generation += 1;
         document.getElementById("generation_info").innerHTML = "Generation: " + generation;
+
     }
     requestAnimationFrame(animate);
 }
